@@ -1,0 +1,4 @@
+sensor.js
+sensor.wasm
+vendor/
+.*.swp
