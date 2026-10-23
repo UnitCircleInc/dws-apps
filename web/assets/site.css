@@ -1,0 +1,147 @@
+/* Shared styles for dws-apps.unitcircle.ca pages.
+   Unit Circle "Sumi & Ai" palette — see unitcircleinc.github.io extra.css.
+   Beni is the logo dot only; ai is the action colour. */
+:root {
+  --sumi: #1C1B19;
+  --washi: #F3EEE4;
+  --beni: #9B1C22;
+
+  --band-bg: var(--washi);
+  --band-fg: var(--sumi);
+  --band-fg-light: #47433D;
+  --bg: #FAFAF7;
+  --fg: #1C1B19;
+  --fg-light: #47433D;
+  --fg-lighter: #625D55;
+  --rule: rgba(28, 27, 25, 0.14);
+  --card-bg: #FFFFFF;
+  --card-line: rgba(28, 27, 25, 0.10);
+  --ai: #24508F;
+  --ai-deep: #183A6B;
+  --on-ai: #FFFFFF;
+  --code-bg: #F0EFEA;
+  --warning: #B26A00;
+  --enso-dot: var(--beni);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --band-bg: #1C1B19;
+    --band-fg: #EDE6D8;
+    --band-fg-light: #C9C1B2;
+    --bg: #141312;
+    --fg: #EDE6D8;
+    --fg-light: #C9C1B2;
+    --fg-lighter: #A39B8D;
+    --rule: rgba(237, 230, 216, 0.14);
+    --card-bg: #1C1B19;
+    --card-line: rgba(237, 230, 216, 0.10);
+    --ai: #8DB1E6;
+    --ai-deep: #A9C4EC;
+    --on-ai: #141312;
+    --code-bg: #1E1C1A;
+    --warning: #E8A93A;
+    --enso-dot: #C23A36;
+    color-scheme: dark;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+}
+a { color: var(--ai); text-decoration: underline; text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em; text-decoration-color: color-mix(in srgb, var(--ai) 40%, transparent); }
+a:hover { text-decoration-color: currentColor; }
+::selection { background: rgba(36, 80, 143, 0.18); }
+:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+code { font: 0.9em ui-monospace, Menlo, Consolas, monospace; background: var(--code-bg);
+       padding: 0.1em 0.35em; border-radius: 3px; }
+
+.wrap { max-width: 64rem; margin: 0 auto; padding: 0 16px; }
+
+/* ---- Band (header / footer) ---- */
+.band { background: var(--band-bg); color: var(--band-fg); }
+header.band { border-bottom: 1px solid var(--rule); }
+header .wrap { display: flex; align-items: center; gap: 0.6rem; height: 3.5rem; }
+.brand { display: flex; align-items: center; gap: 0.5rem; color: inherit; text-decoration: none;
+         font-weight: 600; }
+.brand svg { width: 1.6rem; height: 1.6rem; color: var(--band-fg); }
+.brand .enso-dot { fill: var(--enso-dot); }
+header .sep { color: var(--band-fg-light); }
+header .product { color: var(--band-fg-light); }
+header a.product { text-decoration: none; }
+header a.product:hover { color: var(--band-fg); }
+header nav { margin-left: auto; display: flex; gap: 1.2rem; font-size: 0.95rem; }
+header nav a { color: var(--band-fg-light); text-decoration: none; }
+header nav a:hover { color: var(--band-fg); }
+@media (max-width: 40rem) { header .sep, header .product, header nav .opt { display: none; } }
+
+footer.band { border-top: 1px solid var(--rule); margin-top: 4rem; padding: 2rem 0;
+              color: var(--band-fg-light); font-size: 0.9rem; }
+footer a { color: var(--band-fg); }
+footer p { margin: 0.3rem 0; }
+
+/* ---- Hero ---- */
+.hero { padding: 3.5rem 0 2rem; }
+.hero h1 { font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.15; margin: 0 0 0.8rem;
+           font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+.hero .lede { font-size: 1.15rem; color: var(--fg-light); max-width: 44rem; margin: 0 0 1.8rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.7rem 1.2rem;
+       border-radius: 4px; font-weight: 600; text-decoration: none; border: 1px solid var(--ai); }
+.btn-primary { background: var(--ai); color: var(--on-ai); }
+.btn-primary:hover { background: var(--ai-deep); border-color: var(--ai-deep); }
+.btn-secondary { color: var(--ai); background: transparent; }
+.btn-secondary:hover { background: color-mix(in srgb, var(--ai) 8%, transparent); }
+.btn svg { width: 1.1em; height: 1.1em; flex: none; }
+.meta { margin: 0.9rem 0 0; font-size: 0.9rem; color: var(--fg-lighter); }
+
+/* ---- Screenshot ---- */
+figure { margin: 2.5rem 0 0; }
+figure img { display: block; width: 100%; height: auto; border-radius: 4px;
+             border: 1px solid var(--card-line); background: #0f0f1e; }
+figcaption { margin-top: 0.6rem; font-size: 0.9rem; color: var(--fg-lighter); }
+
+/* ---- Sections ---- */
+section { padding-top: 3rem; }
+h2 { font-size: 1.5rem; font-weight: 600; margin: 0 0 1rem; }
+h3 { font-size: 1.05rem; font-weight: 600; margin: 0 0 0.4rem; }
+p { margin: 0 0 1rem; }
+.muted { color: var(--fg-light); }
+
+.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); }
+.card { background: var(--card-bg); border: 1px solid var(--card-line); border-radius: 4px;
+        padding: 1rem 1.2rem; }
+.card p { margin: 0; color: var(--fg-light); font-size: 0.95rem; }
+
+ol.steps { padding-left: 1.4rem; margin: 0; }
+ol.steps li { margin-bottom: 0.6rem; padding-left: 0.3rem; }
+
+.note { border-left: 3px solid var(--warning); background: color-mix(in srgb, var(--warning) 8%, transparent);
+        padding: 0.8rem 1rem; border-radius: 0 4px 4px 0; margin: 1rem 0; }
+.note strong { color: var(--warning); }
+
+dl.faq dt { font-weight: 600; margin-top: 1rem; }
+dl.faq dd { margin: 0.2rem 0 0; color: var(--fg-light); }
+
+.two-col { display: grid; gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }
+
+/* ---- Tool cards (hub page) ---- */
+.tools { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); }
+.tool { display: flex; flex-direction: column; background: var(--card-bg); border: 1px solid var(--card-line);
+        border-radius: 4px; overflow: hidden; }
+.tool img { display: block; width: 100%; height: auto; aspect-ratio: 1400 / 860; object-fit: cover;
+            background: #0f0f1e; border-bottom: 1px solid var(--card-line); }
+.tool .body { padding: 1rem 1.2rem 1.2rem; display: flex; flex-direction: column; gap: 0.6rem; flex: 1; }
+.tool h2 { font-size: 1.2rem; margin: 0; }
+.tool h2 a { color: inherit; text-decoration: none; }
+.tool h2 a:hover { color: var(--ai); }
+.tool p { margin: 0; color: var(--fg-light); font-size: 0.95rem; }
+.tool .links { margin-top: auto; padding-top: 0.4rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem;
+               font-size: 0.95rem; }

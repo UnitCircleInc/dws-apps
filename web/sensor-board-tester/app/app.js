@@ -1,9 +1,15 @@
 /**
- * app.js — DWT Sensor Board Tester, web front-end
+ * app.js — DWS Sensor Board Tester, web front-end
  *
  * Requires Chrome 89+ or Edge 89+.
  * Web Serial API is NOT supported in Safari (as of 2025).
+ *
+ * Add ?demo to the URL to run on simulated data (no hardware or Web Serial
+ * needed).  Demo frames are generated in WASM and take the same decode,
+ * FFT and render path as real poll responses.
  */
+
+const DEMO = new URLSearchParams(location.search).has('demo');
 
 /* =========================================================================
    WASM module bootstrap
@@ -438,6 +444,21 @@ async function connect() {
     runProtocol();
 }
 
+/* Demo mode — feed a simulated poll response through processDecodedFrame
+   every DEMO_DT_MS, standing in for the serial request-reply loop. */
+const DEMO_DT_MS = 20;
+
+function startDemo() {
+    state.proto      = 'polling';
+    state.statusStr  = 'Demo mode — simulated data, no board connected';
+    state.versionStr = 'BL: demo  APP: demo';
+    state.lastRateTs = performance.now();
+    setInterval(() => {
+        const len = M._sensor_demo_frame(decodeBufPtr, FRAME_CAP, DEMO_DT_MS);
+        processDecodedFrame(len);
+    }, DEMO_DT_MS);
+}
+
 async function disconnect() {
     state.proto = 'idle';
     if (state.writer) {
@@ -513,6 +534,7 @@ function renderFrame(ts) {
 window.addEventListener('resize', () => { resizeCanvases(); });
 
 document.getElementById('connect-btn').addEventListener('click', () => {
+    if (DEMO) { location.search = ''; return; }
     if (state.port) disconnect(); else connect();
 });
 
@@ -520,6 +542,7 @@ resizeCanvases();
 
 loadWasm().then(() => {
     allocateWasmBuffers();
+    if (DEMO) startDemo();
     renderFrame();
 }).catch(e => {
     document.getElementById('status-text').textContent =

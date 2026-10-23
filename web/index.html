@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DWS Apps</title>
+  <meta name="description" content="Browser-based test and support tools for DWS hardware, from Unit Circle.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/favicon.ico" sizes="16x16 32x32 48x48">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta name="theme-color" content="#F3EEE4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1C1B19" media="(prefers-color-scheme: dark)">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="band">
+  <div class="wrap">
+    <a class="brand" href="https://www.unitcircle.ca/" aria-label="Unit Circle home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M27.433 10.026A12.899 12.899 0 1 1 21.974 4.567A4.55 4.55 0 0 0 18.485 9.564A6.899 6.899 0 1 0 22.436 13.515A4.55 4.55 0 0 0 27.433 10.026Z"/><circle class="enso-dot" cx="23" cy="9" r="3.15"/></svg>
+      Unit Circle
+    </a>
+    <span class="sep">/</span>
+    <span class="product">DWS Apps</span>
+    <nav>
+      <a href="https://github.com/UnitCircleInc/dws-apps">Source</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <h1>DWS Apps</h1>
+    <p class="lede">
+      Browser-based tools for testing and supporting DWS hardware. Each one runs
+      entirely in your browser, and each can be downloaded as a single file for
+      offline use.
+    </p>
+  </div>
+
+  <div class="tools">
+    <article class="tool">
+      <a href="sensor-board-tester/" tabindex="-1" aria-hidden="true">
+        <img src="sensor-board-tester/img/app-demo.png" width="1400" height="860" alt="" loading="lazy">
+      </a>
+      <div class="body">
+        <h2><a href="sensor-board-tester/">Sensor Board Tester</a></h2>
+        <p>Check a sensor board over USB. It shows the live hydrophone spectrum,
+          the pressure trace, the temperature and the firmware versions.</p>
+        <div class="links">
+          <a href="sensor-board-tester/app/">Launch</a>
+          <a href="sensor-board-tester/app/?demo">Demo</a>
+          <a href="sensor-board-tester/">About &amp; download</a>
+        </div>
+      </div>
+    </article>
+  </div>
+
+</main>
+
+<footer class="band">
+  <div class="wrap">
+    <p>DWS Apps {{VERSION}} · built {{BUILD_DATE}} from
+      <a href="https://github.com/UnitCircleInc/dws-apps/commit/{{COMMIT}}">{{COMMIT}}</a></p>
+    <p>© Unit Circle Inc. · <a href="https://www.unitcircle.ca/">unitcircle.ca</a> ·
+      <a href="https://github.com/UnitCircleInc/dws-apps/blob/main/LICENSE">Apache-2.0</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

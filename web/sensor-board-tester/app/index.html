@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DWT Sensor Board Tester</title>
+  <title>DWS Sensor Board Tester</title>
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -52,6 +53,19 @@
     #rate-text   { color: #888; white-space: nowrap; }
     #temp-text   { color: #a8d8a8; white-space: nowrap; }
 
+    #demo-badge {
+      display: none;
+      background: #3a2a00;
+      color: #ffcc55;
+      border: 1px solid #886600;
+      border-radius: 3px;
+      padding: 0 6px;
+      white-space: nowrap;
+    }
+
+    #help-link { color: #7ec8e3; white-space: nowrap; }
+    #app-version { color: #555; white-space: nowrap; }
+
     #version-text {
       margin-top: 2px;
       color: #666;
@@ -96,6 +110,9 @@
       <span id="status-text">Checking browser…</span>
       <span id="rate-text"></span>
       <span id="temp-text"></span>
+      <span id="demo-badge">DEMO</span>
+      <a id="help-link" href="https://dws-apps.unitcircle.ca/sensor-board-tester/" target="_blank" rel="noopener">Help</a>
+      <span id="app-version" title="Tester version">{{VERSION}}</span>
     </div>
     <div id="version-text"></div>
   </div>
@@ -104,6 +121,7 @@
     ⚠ Web Serial API is not available in this browser.<br>
     Use <strong>Chrome 89+</strong> or <strong>Edge 89+</strong>.
     Safari does not support Web Serial API (as of 2025).
+    You can still try the tool on simulated data: <a href="?demo" style="color:#ffcc55">open the demo</a>.
   </div>
 
   <div id="plots">
@@ -121,8 +139,16 @@
 <script src="app.js"></script>
 
 <script>
+  /* {{VERSION}} is filled in by tools/build_site.py; unbuilt copies say dev. */
+  const appVer = document.getElementById('app-version');
+  if (appVer.textContent.startsWith('{{')) appVer.textContent = 'dev';
+
+  if (DEMO) {
+    document.getElementById('demo-badge').style.display = 'inline';
+    document.getElementById('connect-btn').textContent = 'Exit demo';
+  }
   /* Show warning if Web Serial is unavailable (Safari, Firefox, etc.) */
-  if (!('serial' in navigator)) {
+  else if (!('serial' in navigator)) {
     document.getElementById('no-serial-warn').style.display = 'block';
     document.getElementById('status-text').textContent =
       'Web Serial not supported — Chrome or Edge required.';

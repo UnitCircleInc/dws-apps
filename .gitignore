@@ -1,4 +1,4 @@
-sensor.js
-sensor.wasm
+web/*/app/sensor.js
+_site/
 vendor/
 .*.swp

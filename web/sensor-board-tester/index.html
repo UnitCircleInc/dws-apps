@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DWS Sensor Board Tester</title>
+  <meta name="description" content="Browser-based test tool for DWS sensor boards: live hydrophone spectrum, pressure trace, temperature and firmware versions over USB serial.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.ico" sizes="16x16 32x32 48x48">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <meta name="theme-color" content="#F3EEE4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1C1B19" media="(prefers-color-scheme: dark)">
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+
+<header class="band">
+  <div class="wrap">
+    <a class="brand" href="https://www.unitcircle.ca/" aria-label="Unit Circle home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M27.433 10.026A12.899 12.899 0 1 1 21.974 4.567A4.55 4.55 0 0 0 18.485 9.564A6.899 6.899 0 1 0 22.436 13.515A4.55 4.55 0 0 0 27.433 10.026Z"/><circle class="enso-dot" cx="23" cy="9" r="3.15"/></svg>
+      Unit Circle
+    </a>
+    <span class="sep">/</span>
+    <a class="product" href="../">DWS Apps</a>
+    <span class="sep">/</span>
+    <span class="product">Sensor Board Tester</span>
+    <nav>
+      <a class="opt" href="#how">How to use</a>
+      <a class="opt" href="#offline">Offline</a>
+      <a href="https://github.com/UnitCircleInc/dws-apps">Source</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <h1>DWS Sensor Board Tester</h1>
+    <p class="lede">
+      Plug a DWS sensor board into USB and check it from your browser. The tester
+      shows the hydrophone spectrum, the pressure trace, the temperature and the
+      firmware versions live. There's nothing to install.
+    </p>
+    <div class="actions">
+      <a class="btn btn-primary" href="app/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+        Launch the tester
+      </a>
+      <a class="btn btn-secondary" href="downloads/dws-sensor-board-tester.html" download>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        Download for offline use
+      </a>
+      <a href="app/?demo">Try the demo (no board needed)</a>
+    </div>
+    <p class="meta">Version {{VERSION}} · Requires desktop Chrome or Edge</p>
+  </div>
+
+  <figure>
+    <img src="img/app-demo.png" width="1400" height="860"
+         alt="The tester in demo mode. The top plot is a hydrophone spectrum from 0 to 1995 Hz with a strong peak at 752 Hz. The bottom plot is one second of pressure in kPa showing a press pulse up to about 1900 kPa. The header shows the poll rate, the error count, the temperature and the firmware versions.">
+    <figcaption>Demo mode, running on simulated data. With a real board, the header shows its
+      bootloader and app firmware versions, and the plots show live sensor data.</figcaption>
+  </figure>
+
+  <section id="what">
+    <h2>What it checks</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Hydrophone</h3>
+        <p>A 1024-point FFT of the hydrophone signal (sampled at 3989 Hz, DC removed,
+          Blackman window), plotted in dB re 1 Pa from 0 to 1995 Hz. The label shows
+          the peak level and its frequency.</p>
+      </div>
+      <div class="card">
+        <h3>Pressure</h3>
+        <p>The last second of pressure readings in kPa, scrolling, with the minimum
+          and maximum in the window.</p>
+      </div>
+      <div class="card">
+        <h3>Temperature &amp; status</h3>
+        <p>The board temperature in °C and the status string the sensor firmware reports.</p>
+      </div>
+      <div class="card">
+        <h3>Firmware &amp; link health</h3>
+        <p>The bootloader and app versions, read at connect. Also the poll rate and the
+          number of frames that failed to parse.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="two-col">
+      <div>
+        <h2>How to use</h2>
+        <ol class="steps">
+          <li>Connect the sensor board to the computer over USB.</li>
+          <li>Open the tester in <strong>Chrome</strong> or <strong>Edge</strong>,
+            then click <strong>Connect</strong>.</li>
+          <li>Choose the board's serial port in the browser's pop-up and click
+            <strong>Connect</strong>.</li>
+          <li>The tester talks to the bootloader, reads the firmware versions and
+            starts the sensor app. This takes a few seconds.</li>
+          <li>When the status says <strong>Connected</strong>, the plots update live.
+            Click <strong>Disconnect</strong> to release the port.</li>
+        </ol>
+      </div>
+      <div>
+        <h2>Requirements</h2>
+        <p>A desktop browser with the
+          <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API">Web Serial API</a>:
+          <strong>Chrome 89+</strong> or <strong>Edge 89+</strong> on Windows, macOS or Linux.</p>
+        <div class="note">
+          <strong>Not supported:</strong> Safari, Firefox and mobile browsers don't have
+          Web Serial. You can still look at the <a href="app/?demo">demo</a> in them.
+        </div>
+        <p class="muted">The tester connects at 1,000,000 baud, 8N1, with no flow control.
+          All processing happens in your browser, and no data leaves your computer.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="offline">
+    <h2>Running offline</h2>
+    <p>The download is a single HTML file (about 80&nbsp;KB) that contains the whole
+      tester. It doesn't need an internet connection, a web server or an install.</p>
+    <ol class="steps">
+      <li><a href="downloads/dws-sensor-board-tester.html" download>Download
+        <code>dws-sensor-board-tester.html</code></a> and save it anywhere, such as
+        the test bench's desktop.</li>
+      <li>Open it in Chrome or Edge: double-click it, or drag it onto a browser window. If
+        your default browser is something else, right-click the file and choose
+        <em>Open with</em>.</li>
+      <li>Use it as described above. To check which version you have, look at the
+        top-right corner of the tester.</li>
+    </ol>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>Troubleshooting</h2>
+    <dl class="faq">
+      <dt>The Connect button is greyed out, or there's a "Web Serial not supported" warning</dt>
+      <dd>The browser doesn't support Web Serial. Use desktop Chrome or Edge.</dd>
+
+      <dt>The board's port isn't in the list</dt>
+      <dd>Check the USB cable (some cables only carry power) and that the board is
+        powered. On Windows, check that the port appears in Device Manager.</dd>
+
+      <dt>"Connect failed: Failed to open serial port"</dt>
+      <dd>Another program, such as a terminal, or another browser tab has the port open.
+        Close it and try again.</dd>
+
+      <dt>"Boot loader not responding."</dt>
+      <dd>The board didn't answer within about 6 seconds. Reset or power-cycle the board,
+        then click Disconnect and Connect again.</dd>
+
+      <dt>The error count keeps rising</dt>
+      <dd>Some frames from the board aren't decoding. A few errors at connect are
+        normal. If the count keeps rising, check the cable and the board's firmware
+        version.</dd>
+    </dl>
+  </section>
+
+</main>
+
+<footer class="band">
+  <div class="wrap">
+    <p>DWS Sensor Board Tester {{VERSION}} · built {{BUILD_DATE}} from
+      <a href="https://github.com/UnitCircleInc/dws-apps/commit/{{COMMIT}}">{{COMMIT}}</a></p>
+    <p>© Unit Circle Inc. · <a href="https://www.unitcircle.ca/">unitcircle.ca</a> ·
+      <a href="https://github.com/UnitCircleInc/dws-apps/blob/main/LICENSE">Apache-2.0</a> ·
+      FFT by <a href="https://github.com/mborgerding/kissfft">KISS FFT</a> (BSD-3-Clause)</p>
+  </div>
+</footer>
+
+</body>
+</html>

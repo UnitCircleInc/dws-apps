@@ -1,74 +1,79 @@
 # =============================================================================
-# DWT Sensor Board Tester — C/C++ build
+# DWS Sensor Board Tester — WebAssembly build
 #
-# Prerequisites (install before building):
-#   macOS:   brew install glfw
-#   Linux:   apt install libglfw3-dev
-#   Windows: MSYS2/MinGW-w64 → pacman -S mingw-w64-x86_64-glfw
+# Prerequisites:
+#   Emscripten (emcc):  brew install emscripten
+#                       (or https://emscripten.org/docs/getting_started)
+#   python3, git
 #
 # One-time vendor setup:
 #   make setup
 #
-# Build:
-#   make
+# Build the WASM module (web/sensor-board-tester/app/sensor.js):
+#   make web
+#
+# Serve the site locally on http://localhost:8080:
+#   make run
+#
+# Build the deployable site (hub, tool pages, apps, standalone downloads) in _site/:
+#   make site
+#
+# Regenerate the landing-page screenshots (needs Google Chrome):
+#   make screenshots
 #
 # Clean:
 #   make clean
 # =============================================================================
 
-UNAME_S := $(shell uname -s 2>/dev/null)
-ifeq ($(UNAME_S),Darwin)
-  PLATFORM := macos
-else ifeq ($(UNAME_S),Linux)
-  PLATFORM := linux
-else
-  PLATFORM := windows
-endif
-
-# ---------- Compiler ----------------------------------------------------------
-CXX    := g++
-CC     := gcc
-CSTD   := -std=c11
-CXXSTD := -std=c++17
-OPT    := -O2
-WARN   := -Wall -Wextra -Wno-unused-parameter
-
 # ---------- Vendor paths ------------------------------------------------------
-VENDOR  := vendor
-KISSFFT := $(VENDOR)/kissfft
+VENDOR      := vendor
+KISSFFT     := $(VENDOR)/kissfft
+KISSFFT_URL := https://github.com/mborgerding/kissfft
+KISSFFT_REF := 5399a98411c57b3da734d0050744e14103f898ab
 
+APP  := web/sensor-board-tester/app
+SITE := _site
 
 # ---------- Top-level targets -------------------------------------------------
-.PHONY: web setup clean run
+.PHONY: web setup clean run site screenshots
 
 setup:
-	mkdir -p $(VENDOR)
-	@test -d $(KISSFFT) || git clone --depth=1 https://github.com/mborgerding/kissfft $(KISSFFT)
+	@test -d $(KISSFFT) || ( \
+		mkdir -p $(KISSFFT) && cd $(KISSFFT) && \
+		git init -q && \
+		git fetch -q --depth=1 $(KISSFFT_URL) $(KISSFFT_REF) && \
+		git checkout -q FETCH_HEAD )
 
 clean:
-	rm sensor.js sensor.wasm
+	rm -rf $(APP)/sensor.js $(SITE)
 
 # ---------- WebAssembly (Emscripten) ------------------------------------------
-# Prerequisites: brew install emscripten  (or https://emscripten.org/docs/getting_started)
-# Output: sensor.js + sensor.wasm — served alongside index.html and app.js.
-#
+# Output: $(APP)/sensor.js with the wasm embedded (SINGLE_FILE), so the app
+# also works when inlined into one HTML file and opened from file://.
 
-sensor.js: sensor_wasm.c utils/cbor.c utils/cbor.h utils/log.h \
+$(APP)/sensor.js: sensor_wasm.c utils/cbor.c utils/cbor.h utils/log.h \
                $(KISSFFT)/kiss_fft.c $(KISSFFT)/kiss_fftr.c
 	emcc sensor_wasm.c utils/cbor.c \
 		$(KISSFFT)/kiss_fft.c $(KISSFFT)/kiss_fftr.c \
 		-I. -Iutils -I$(KISSFFT) \
 		-D_Float16=uint16_t \
 		-O2 \
-		-s EXPORTED_FUNCTIONS="['_sensor_init','_sensor_cobs_dec','_sensor_encode_info','_sensor_encode_bl_done','_sensor_encode_poll','_sensor_decode_info','_sensor_process_poll','_sensor_fft_mag','_sensor_pres','_sensor_temp','_sensor_status','_sensor_fft_len','_sensor_pres_len','_sensor_sample_rate','_malloc','_free']" \
+		-s EXPORTED_FUNCTIONS="['_sensor_init','_sensor_cobs_dec','_sensor_encode_info','_sensor_encode_bl_done','_sensor_encode_poll','_sensor_decode_info','_sensor_process_poll','_sensor_fft_mag','_sensor_pres','_sensor_temp','_sensor_status','_sensor_fft_len','_sensor_pres_len','_sensor_sample_rate','_sensor_demo_frame','_malloc','_free']" \
 		-s EXPORTED_RUNTIME_METHODS="['HEAPU8','HEAPF32']" \
 		-s MODULARIZE=1 \
 		-s EXPORT_NAME="SensorModule" \
-		-o sensor.js
+		-s SINGLE_FILE=1 \
+		-o $@
 
-web: sensor.js
+web: $(APP)/sensor.js
 
-run: sensor.js
-	# Serve locally with:
-	python3 -m http.server -d . 8080
+run: web
+	python3 -m http.server -d web 8080
 
+# ---------- Site --------------------------------------------------------------
+
+site: web
+	python3 tools/build_site.py --src web --out $(SITE)
+
+screenshots: web
+	python3 tools/screenshots.py --app $(APP)/index.html --out web/sensor-board-tester/img

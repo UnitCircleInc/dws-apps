@@ -1,5 +1,5 @@
 /*
- * sensor_wasm.c — DWT Sensor Board Tester, WASM compute module
+ * sensor_wasm.c — DWS Sensor Board Tester, WASM compute module
  *
  * Compiled with Emscripten (emcc).  Provides COBS framing, CBOR encode/decode,
  * and the FFT pipeline.  The JavaScript layer owns serial I/O and rendering.
@@ -284,6 +284,74 @@ EMSCRIPTEN_KEEPALIVE int sensor_process_poll(const uint8_t *data, int len) {
     }
 
     return result;
+}
+
+/* -------------------------------------------------------------------------
+   Demo mode — synthesises a CBOR poll response shaped like the firmware's,
+   so demo data runs through sensor_process_poll exactly like real data.
+   ------------------------------------------------------------------------- */
+
+#define DEMO_PRES_RATE 100.0f   /* PRES_WINDOW samples per second */
+
+static double   g_demo_h_t;     /* hydrophone sample clock [s] */
+static double   g_demo_p_t;     /* pressure sample clock [s] */
+static uint32_t g_demo_rng = 0x2545F491u;
+
+/* Approximately normal noise (Irwin–Hall, 4 uniforms), unit variance. */
+static float demo_noise(void) {
+    float s = 0.0f;
+    for (int i = 0; i < 4; i++) {
+        g_demo_rng ^= g_demo_rng << 13;
+        g_demo_rng ^= g_demo_rng >> 17;
+        g_demo_rng ^= g_demo_rng << 5;
+        s += (float)g_demo_rng / 4294967296.0f;
+    }
+    return (s - 2.0f) * 1.7320508f;
+}
+
+/* Write a CBOR poll response covering dt_ms of simulated time into buf.
+   Returns the CBOR length, or -1 on error. */
+EMSCRIPTEN_KEEPALIVE int sensor_demo_frame(uint8_t *buf, int buf_size, int dt_ms) {
+    float h[N];
+    float p[PRES_WINDOW];
+    int h_n = (int)(SAMPLE_RATE * dt_ms / 1000.0f + 0.5f);
+    int p_n = (int)(DEMO_PRES_RATE * dt_ms / 1000.0f + 0.5f);
+    if (h_n > N)           h_n = N;
+    if (p_n > PRES_WINDOW) p_n = PRES_WINDOW;
+
+    /* Hydrophone [Pa]: 750 Hz test tone with a slow level wobble, its 2nd
+       harmonic, 50 Hz pickup, and a broadband noise floor. */
+    for (int i = 0; i < h_n; i++) {
+        double t = g_demo_h_t + i / (double)SAMPLE_RATE;
+        float  a = 2.0f + 0.5f * sinf(2.0f * (float)M_PI * 0.2f * (float)t);
+        h[i] = a     * sinf((float)fmod(2.0 * M_PI *  750.0 * t, 2.0 * M_PI))
+             + 0.05f * sinf((float)fmod(2.0 * M_PI * 1500.0 * t, 2.0 * M_PI))
+             + 0.02f * sinf((float)fmod(2.0 * M_PI *   50.0 * t, 2.0 * M_PI))
+             + 0.002f * demo_noise();
+    }
+    g_demo_h_t += h_n / (double)SAMPLE_RATE;
+
+    /* Pressure [kPa]: atmospheric baseline with a press pulse every 1.25 s. */
+    for (int i = 0; i < p_n; i++) {
+        double t     = g_demo_p_t + i / (double)DEMO_PRES_RATE;
+        double phase = fmod(t, 1.25) / 0.6;
+        float  press = phase < 1.0 ? (float)(0.5 - 0.5 * cos(2.0 * M_PI * phase))
+                                   : 0.0f;
+        p[i] = 101.3f + 1800.0f * press + 1.5f * demo_noise();
+    }
+    g_demo_p_t += p_n / (double)DEMO_PRES_RATE;
+
+    float temp = 21.5f + 0.3f * sinf((float)fmod(2.0 * M_PI * g_demo_p_t / 60.0, 2.0 * M_PI));
+
+    cbor_stream_t cs;
+    cbor_init(&cs, buf, (size_t)buf_size);
+    cbor_write_map(&cs, 4);
+    cbor_write_text(&cs, "h"); cbor_write_bytes(&cs, (const uint8_t *)h, (size_t)h_n * 4);
+    cbor_write_text(&cs, "p"); cbor_write_bytes(&cs, (const uint8_t *)p, (size_t)p_n * 4);
+    cbor_write_text(&cs, "t"); cbor_write_bytes(&cs, (const uint8_t *)&temp, 4);
+    cbor_write_text(&cs, "s"); cbor_write_text(&cs, "demo");
+    if (cbor_error(&cs) != CBOR_ERROR_NONE) return -1;
+    return (int)cbor_read_avail(&cs);
 }
 
 /* Accessors — return pointers into WASM linear memory so JS can view the
