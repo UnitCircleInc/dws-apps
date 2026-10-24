@@ -33,6 +33,30 @@ def git(*args):
         return ""
 
 
+def solover():
+    """Version string per SoloVer (https://beza1e1.tuxen.de/SoloVer).
+
+    Release tags are bare numbers ("1", "2", ...).  A build on a tag is that
+    number; later commits get a "+" postfix, which sorts after the release:
+    "1+2_gabc1234" (2 commits past 1), with "_dirty" for uncommitted changes.
+    """
+    desc = git("describe", "--tags", "--long", "--dirty", "--match", "[0-9]*")
+    m = re.fullmatch(r"(\d+)-(\d+)-(g[0-9a-f]+)(-dirty)?", desc)
+    if not m:
+        sha = git("rev-parse", "--short", "HEAD")
+        if not sha:
+            return "0"
+        dirty = "_dirty" if git("status", "--porcelain", "--untracked-files=no") else ""
+        return f"0+g{sha}{dirty}"
+    number, ahead, sha, dirty = m.groups()
+    post = []
+    if ahead != "0":
+        post += [ahead, sha]
+    if dirty:
+        post.append("dirty")
+    return number + ("+" + "_".join(post) if post else "")
+
+
 def stamp(text, info):
     for key, val in info.items():
         text = text.replace("{{" + key + "}}", val)
@@ -80,7 +104,7 @@ def main():
     args = ap.parse_args()
 
     info = {
-        "VERSION": git("describe", "--tags", "--always", "--dirty") or "dev",
+        "VERSION": solover(),
         "COMMIT": git("rev-parse", "--short", "HEAD") or "unknown",
         "BUILD_DATE": datetime.date.today().isoformat(),
     }

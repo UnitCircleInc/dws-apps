@@ -38,8 +38,13 @@ make screenshots  # refresh screenshots (needs Google Chrome)
 ```
 
 Pushing to `main` builds and deploys to GitHub Pages
-(`.github/workflows/pages.yml`). Tag a commit (`git tag v1.0.0`) to give the
-site and downloads a release version instead of a commit hash.
+(`.github/workflows/pages.yml`).
+
+Versions follow [SoloVer](https://beza1e1.tuxen.de/SoloVer): release tags are
+bare numbers (`git tag 2 && git push --tags`, then re-run the workflow from
+the Actions tab, since tags alone don't trigger it). Builds between tags are
+stamped `1+2_gabc1234` (2 commits after release 1), with `_dirty` for
+uncommitted changes.
 
 ## License
 
