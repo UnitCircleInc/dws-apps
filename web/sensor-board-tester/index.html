@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DWS Sensor Board Tester</title>
-  <meta name="description" content="Browser-based test tool for DWS sensor boards: live hydrophone spectrum, pressure trace, temperature and firmware versions over USB serial.">
+  <meta name="description" content="Browser-based test tool for the DWS Sensor Board (OW-BRD001): live hydrophone spectrum, pressure trace, temperature and firmware versions over USB serial.">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.ico" sizes="16x16 32x32 48x48">
   <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
@@ -25,6 +25,7 @@
     <span class="sep">/</span>
     <span class="product">Sensor Board Tester</span>
     <nav>
+      <a class="opt" href="#wiring">Wiring</a>
       <a class="opt" href="#how">How to use</a>
       <a class="opt" href="#offline">Offline</a>
       <a href="https://github.com/UnitCircleInc/dws-apps">Source</a>
@@ -37,7 +38,8 @@
   <div class="hero">
     <h1>DWS Sensor Board Tester</h1>
     <p class="lede">
-      Plug a DWS sensor board into USB and check it from your browser. The tester
+      Connect a DWS Sensor Board (OW-BRD001) through a USB-RS485 cable and check it
+      from your browser. The tester
       shows the hydrophone spectrum, the pressure trace, the temperature and the
       firmware versions live. There's nothing to install.
     </p>
@@ -87,22 +89,66 @@
     </div>
   </section>
 
+  <section id="wiring">
+    <h2>Wiring</h2>
+    <p>The tester talks to the board over RS-485. You need an
+      <a href="https://ftdichip.com/products/usb-rs485-we-1800-bt/"><strong>FTDI USB-RS485-WE-1800-BT</strong></a>
+      cable (USB on one end, bare wires on the other)
+      wired to the <strong>J7</strong> connector on the DWS Sensor Board (OW-BRD001)
+      as follows.</p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>J7 pin</th><th>Board signal</th><th>Cable wire(s)</th><th>Cable signal</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>V+ (in)</td><td><span class="wire"><span class="swatch" style="--wire:#D32F2F"></span>Red</span></td><td>V+ (out), +5&nbsp;V USB bus</td></tr>
+          <tr><td>2</td><td>GND</td><td><span class="wire"><span class="swatch" style="--wire:#1C1B19"></span>Black</span></td><td>GND</td></tr>
+          <tr><td>3</td><td>A</td><td><span class="wire"><span class="swatch" style="--wire:#F57C00"></span>Orange</span> + <span class="wire"><span class="swatch" style="--wire:#2E7D32"></span>Green</span></td><td>B (D+) + 120&nbsp;Ω terminator</td></tr>
+          <tr><td>4</td><td>B</td><td><span class="wire"><span class="swatch" style="--wire:#FBC02D"></span>Yellow</span> + <span class="wire"><span class="swatch" style="--wire:#6D4C41"></span>Brown</span></td><td>A (D−) + 120&nbsp;Ω terminator</td></tr>
+          <tr><td>5</td><td>Shield</td><td class="muted">Not connected</td><td class="muted">The cable has no shield wire</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <strong>A and B are swapped on purpose.</strong> FTDI labels D− as A and D+ as B,
+      the opposite way round from the board. Board A goes to the cable's B (orange) and
+      board B goes to the cable's A (yellow). Wire by colour, not by letter.
+    </div>
+    <ul class="plain">
+      <li>The <strong>green</strong> and <strong>brown</strong> wires are the ends of the
+        cable's built-in 120&nbsp;Ω terminating resistor. Joining them to orange and yellow
+        puts the terminator across the A/B pair.</li>
+      <li>The cable's red wire carries USB bus power (+5&nbsp;V nominal) to the board, so
+        the board switches on when the cable is plugged into the PC.</li>
+    </ul>
+
+  </section>
+
   <section id="how">
     <div class="two-col">
       <div>
         <h2>How to use</h2>
         <ol class="steps">
-          <li>Connect the sensor board to the computer over USB.</li>
-          <li>Open the tester in <strong>Chrome</strong> or <strong>Edge</strong>.
-            Leave the source set to <strong>USB serial</strong> and click
-            <strong>Connect</strong>.</li>
-          <li>Choose the board's serial port in the browser's pop-up and click
-            <strong>Connect</strong>.</li>
+          <li>Open the tester in <strong>Chrome</strong> or <strong>Edge</strong>, with
+            the source set to <strong>USB serial</strong>.</li>
+          <li>Wire the RS-485 cable to the board's J7 connector
+            (see <a href="#wiring">Wiring</a>).</li>
+          <li>Plug the cable's USB end into the PC. This powers up the board.</li>
+          <li>Click <strong>Connect</strong>, choose the cable's serial port in the
+            browser's pop-up, and click <strong>Connect</strong> at the bottom of the
+            pop-up.</li>
           <li>The tester talks to the bootloader, reads the firmware versions and
-            starts the sensor app. This takes a few seconds.</li>
-          <li>When the status says <strong>Connected</strong>, the plots update live.
-            Click <strong>Disconnect</strong> to release the port.</li>
+            starts the sensor app. When the status says <strong>Connected</strong>,
+            the plots update live. Click <strong>Disconnect</strong> to release the port.</li>
         </ol>
+        <div class="note">
+          <strong>Connect within 10 seconds.</strong> Steps 3 and 4 must be done within
+          about 10 seconds of plugging in the cable. If you miss it, unplug the cable's USB
+          end, plug it back in and try again.
+        </div>
       </div>
       <div>
         <h2>Requirements</h2>
@@ -154,17 +200,18 @@
       <dd>The browser doesn't support Web Serial. Use desktop Chrome or Edge. Until then,
         only the simulator board is available.</dd>
 
-      <dt>The board's port isn't in the list</dt>
-      <dd>Check the USB cable (some cables only carry power) and that the board is
-        powered. On Windows, check that the port appears in Device Manager.</dd>
+      <dt>The cable's port isn't in the list</dt>
+      <dd>Check that the USB-RS485 cable is plugged into the PC. On Windows, check that
+        the port appears in Device Manager under <em>Ports (COM &amp; LPT)</em>.</dd>
 
       <dt>"Connect failed: Failed to open serial port"</dt>
       <dd>Another program, such as a terminal, or another browser tab has the port open.
         Close it and try again.</dd>
 
       <dt>"Boot loader not responding."</dt>
-      <dd>The board didn't answer within about 6 seconds. Reset or power-cycle the board,
-        then click Disconnect and Connect again.</dd>
+      <dd>Usually the 10-second window after plugging in the cable was missed. Unplug
+        the cable's USB end, plug it back in, and connect within 10 seconds. If it
+        still fails, check the <a href="#wiring">wiring</a>, especially A and B.</dd>
 
       <dt>The error count keeps rising</dt>
       <dd>Some frames from the board aren't decoding. A few errors at connect are

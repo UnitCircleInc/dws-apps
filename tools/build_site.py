@@ -8,7 +8,9 @@
   <out>/<tool>/downloads/dws-<tool>.html    standalone single-file app
 
 A tool is any web/<tool>/ with an app/index.html.  Every page gets
-{{VERSION}} / {{COMMIT}} / {{BUILD_DATE}} substituted.  The standalone file
+{{VERSION}} / {{COMMIT}} / {{BUILD_DATE}} substituted, and its local .css/.js
+references get a ?v=<content hash> so browsers never pair a new page with a
+stale cached stylesheet or script.  The standalone file
 inlines the app's local scripts (sensor.js already embeds the wasm) and the
 favicon, so it runs when opened straight from disk in Chrome or Edge.
 """
@@ -16,6 +18,7 @@ favicon, so it runs when opened straight from disk in Chrome or Edge.
 import argparse
 import base64
 import datetime
+import hashlib
 import pathlib
 import re
 import shutil
@@ -61,6 +64,17 @@ def stamp(text, info):
     for key, val in info.items():
         text = text.replace("{{" + key + "}}", val)
     return text
+
+
+def cache_bust(html, page):
+    """Append ?v=<hash of file contents> to relative .css/.js references."""
+    def add_hash(m):
+        target = page.parent / m.group(2)
+        if not target.is_file():
+            return m.group(0)
+        digest = hashlib.sha256(target.read_bytes()).hexdigest()[:8]
+        return f'{m.group(1)}="{m.group(2)}?v={digest}"'
+    return re.sub(r'\b(href|src)="([^":?#]+\.(?:css|js))"', add_hash, html)
 
 
 def inline_script(js):
@@ -114,7 +128,7 @@ def main():
     shutil.copytree(args.src, args.out)
 
     for page in args.out.rglob("*.html"):
-        page.write_text(stamp(page.read_text(), info))
+        page.write_text(cache_bust(stamp(page.read_text(), info), page))
 
     print(f"built {args.out}/ ({info['VERSION']})")
     for app_index in sorted(args.src.glob("*/app/index.html")):

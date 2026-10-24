@@ -14,6 +14,7 @@
   --fg-light: #47433D;
   --fg-lighter: #625D55;
   --rule: rgba(28, 27, 25, 0.14);
+  --grid: rgba(28, 27, 25, 0.28);
   --card-bg: #FFFFFF;
   --card-line: rgba(28, 27, 25, 0.10);
   --ai: #24508F;
@@ -34,6 +35,7 @@
     --fg-light: #C9C1B2;
     --fg-lighter: #A39B8D;
     --rule: rgba(237, 230, 216, 0.14);
+    --grid: rgba(237, 230, 216, 0.28);
     --card-bg: #1C1B19;
     --card-line: rgba(237, 230, 216, 0.10);
     --ai: #8DB1E6;
@@ -145,3 +147,19 @@ dl.faq dd { margin: 0.2rem 0 0; color: var(--fg-light); }
 .tool p { margin: 0; color: var(--fg-light); font-size: 0.95rem; }
 .tool .links { margin-top: auto; padding-top: 0.4rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem;
                font-size: 0.95rem; }
+
+/* ---- Tables ---- */
+.table-scroll { overflow-x: auto; margin: 0 0 1rem; }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+table { background: var(--card-bg); border: 1px solid var(--grid); }
+th, td { text-align: left; padding: 0.45rem 0.8rem; border: 1px solid var(--grid); vertical-align: top; }
+th { font-weight: 600; background: var(--code-bg); white-space: nowrap; }
+.table-scroll table { min-width: 34rem; }
+
+/* Wire colour swatch: <span class="wire"><span class="swatch" style="--wire:#hex"></span>Name</span> */
+.wire { white-space: nowrap; }
+.swatch { display: inline-block; width: 0.8em; height: 0.8em; margin-right: 0.35em; vertical-align: -0.05em;
+          border-radius: 50%; background: var(--wire); box-shadow: 0 0 0 1px var(--rule); }
+
+ul.plain { padding-left: 1.2rem; margin: 0 0 1rem; }
+ul.plain li { margin-bottom: 0.4rem; color: var(--fg-light); }
