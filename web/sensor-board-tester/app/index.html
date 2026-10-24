@@ -53,7 +53,17 @@
     #rate-text   { color: #888; white-space: nowrap; }
     #temp-text   { color: #a8d8a8; white-space: nowrap; }
 
-    #demo-badge {
+    #source-select {
+      background: #161628;
+      color: #ccc;
+      border: 1px solid #2a2a44;
+      border-radius: 3px;
+      padding: 1px 4px;
+      font: inherit;
+    }
+    #source-select:disabled { color: #777; }
+
+    #sim-badge {
       display: none;
       background: #3a2a00;
       color: #ffcc55;
@@ -106,11 +116,15 @@
 
   <div id="header">
     <div id="status-row">
+      <select id="source-select" aria-label="Board source">
+        <option value="serial">USB serial</option>
+        <option value="sim">Simulator board</option>
+      </select>
       <button id="connect-btn">Connect</button>
       <span id="status-text">Checking browser…</span>
       <span id="rate-text"></span>
       <span id="temp-text"></span>
-      <span id="demo-badge">DEMO</span>
+      <span id="sim-badge" title="Data comes from the simulator, not a real board">SIMULATOR</span>
       <a id="help-link" href="https://dws-apps.unitcircle.ca/sensor-board-tester/" target="_blank" rel="noopener">Help</a>
       <span id="app-version" title="Tester version">{{VERSION}}</span>
     </div>
@@ -121,7 +135,7 @@
     ⚠ Web Serial API is not available in this browser.<br>
     Use <strong>Chrome 89+</strong> or <strong>Edge 89+</strong>.
     Safari does not support Web Serial API (as of 2025).
-    You can still try the tool on simulated data: <a href="?demo" style="color:#ffcc55">open the demo</a>.
+    You can still try the tool by connecting to the <strong>Simulator board</strong>.
   </div>
 
   <div id="plots">
@@ -143,16 +157,9 @@
   const appVer = document.getElementById('app-version');
   if (appVer.textContent.startsWith('{{')) appVer.textContent = 'dev';
 
-  if (DEMO) {
-    document.getElementById('demo-badge').style.display = 'inline';
-    document.getElementById('connect-btn').textContent = 'Exit demo';
-  }
   /* Show warning if Web Serial is unavailable (Safari, Firefox, etc.) */
-  else if (!('serial' in navigator)) {
+  if (!('serial' in navigator)) {
     document.getElementById('no-serial-warn').style.display = 'block';
-    document.getElementById('status-text').textContent =
-      'Web Serial not supported — Chrome or Edge required.';
-    document.getElementById('connect-btn').disabled = true;
   }
 </script>
 </body>

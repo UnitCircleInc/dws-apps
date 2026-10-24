@@ -58,7 +58,7 @@ $(APP)/sensor.js: sensor_wasm.c utils/cbor.c utils/cbor.h utils/log.h \
 		-I. -Iutils -I$(KISSFFT) \
 		-D_Float16=uint16_t \
 		-O2 \
-		-s EXPORTED_FUNCTIONS="['_sensor_init','_sensor_cobs_dec','_sensor_encode_info','_sensor_encode_bl_done','_sensor_encode_poll','_sensor_decode_info','_sensor_process_poll','_sensor_fft_mag','_sensor_pres','_sensor_temp','_sensor_status','_sensor_fft_len','_sensor_pres_len','_sensor_sample_rate','_sensor_demo_frame','_malloc','_free']" \
+		-s EXPORTED_FUNCTIONS="['_sensor_init','_sensor_cobs_dec','_sensor_encode_info','_sensor_encode_bl_done','_sensor_encode_poll','_sensor_decode_info','_sensor_process_poll','_sensor_fft_mag','_sensor_pres','_sensor_temp','_sensor_status','_sensor_fft_len','_sensor_pres_len','_sensor_sample_rate','_sensor_sim_reset','_sensor_sim_rx','_malloc','_free']" \
 		-s EXPORTED_RUNTIME_METHODS="['HEAPU8','HEAPF32']" \
 		-s MODULARIZE=1 \
 		-s EXPORT_NAME="SensorModule" \

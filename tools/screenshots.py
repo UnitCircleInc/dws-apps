@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture landing-page screenshots of the app running in demo mode.
+"""Capture landing-page screenshots of the app connected to the simulator board.
 
 Uses headless Google Chrome (set $CHROME to override the binary).  The app is
 loaded straight from disk: sensor.js embeds the wasm, so no server is needed.
@@ -21,7 +21,7 @@ CANDIDATES = [
 
 # (output name, window size, URL query)
 SHOTS = [
-    ("app-demo.png", (1400, 860), "?demo"),
+    ("app-simulator.png", (1400, 860), "?sim"),
 ]
 
 
@@ -48,8 +48,8 @@ def main():
         subprocess.run([
             chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars",
             f"--window-size={w},{h}",
-            # Let the demo run long enough to fill the FFT and pressure plots.
-            "--virtual-time-budget=6000",
+            # Long enough for the connect sequence (~3.5 s) and to fill the plots.
+            "--virtual-time-budget=8000",
             f"--screenshot={dest}",
             app.as_uri() + query,
         ], check=True, stderr=subprocess.DEVNULL)

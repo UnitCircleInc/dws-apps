@@ -287,71 +287,130 @@ EMSCRIPTEN_KEEPALIVE int sensor_process_poll(const uint8_t *data, int len) {
 }
 
 /* -------------------------------------------------------------------------
-   Demo mode — synthesises a CBOR poll response shaped like the firmware's,
-   so demo data runs through sensor_process_poll exactly like real data.
+   Simulator board — stands in for a sensor board on the serial link.  JS
+   feeds it each COBS frame the app writes; it answers like the firmware:
+   "info" -> bootloader/app versions, "bl-done" -> start the app, "poll" ->
+   a poll response covering the simulated time since the previous poll.
    ------------------------------------------------------------------------- */
 
-#define DEMO_PRES_RATE 100.0f   /* PRES_WINDOW samples per second */
+#define SIM_PRES_RATE 100.0f    /* PRES_WINDOW samples per second */
+#define SIM_VERSION   "sim"
 
-static double   g_demo_h_t;     /* hydrophone sample clock [s] */
-static double   g_demo_p_t;     /* pressure sample clock [s] */
-static uint32_t g_demo_rng = 0x2545F491u;
+static bool     g_sim_app_running;
+static double   g_sim_last_poll_ms;
+static double   g_sim_h_t;      /* hydrophone sample clock [s] */
+static double   g_sim_p_t;      /* pressure sample clock [s] */
+static uint32_t g_sim_rng = 0x2545F491u;
 
 /* Approximately normal noise (Irwin–Hall, 4 uniforms), unit variance. */
-static float demo_noise(void) {
+static float sim_noise(void) {
     float s = 0.0f;
     for (int i = 0; i < 4; i++) {
-        g_demo_rng ^= g_demo_rng << 13;
-        g_demo_rng ^= g_demo_rng >> 17;
-        g_demo_rng ^= g_demo_rng << 5;
-        s += (float)g_demo_rng / 4294967296.0f;
+        g_sim_rng ^= g_sim_rng << 13;
+        g_sim_rng ^= g_sim_rng >> 17;
+        g_sim_rng ^= g_sim_rng << 5;
+        s += (float)g_sim_rng / 4294967296.0f;
     }
     return (s - 2.0f) * 1.7320508f;
 }
 
-/* Write a CBOR poll response covering dt_ms of simulated time into buf.
-   Returns the CBOR length, or -1 on error. */
-EMSCRIPTEN_KEEPALIVE int sensor_demo_frame(uint8_t *buf, int buf_size, int dt_ms) {
+/* Write a CBOR poll response covering dt_ms of simulated time into cs. */
+static void sim_poll_response(cbor_stream_t *cs, double dt_ms) {
     float h[N];
     float p[PRES_WINDOW];
-    int h_n = (int)(SAMPLE_RATE * dt_ms / 1000.0f + 0.5f);
-    int p_n = (int)(DEMO_PRES_RATE * dt_ms / 1000.0f + 0.5f);
+    int h_n = (int)(SAMPLE_RATE * dt_ms / 1000.0 + 0.5);
+    int p_n = (int)(SIM_PRES_RATE * dt_ms / 1000.0 + 0.5);
     if (h_n > N)           h_n = N;
     if (p_n > PRES_WINDOW) p_n = PRES_WINDOW;
 
     /* Hydrophone [Pa]: 750 Hz test tone with a slow level wobble, its 2nd
        harmonic, 50 Hz pickup, and a broadband noise floor. */
     for (int i = 0; i < h_n; i++) {
-        double t = g_demo_h_t + i / (double)SAMPLE_RATE;
+        double t = g_sim_h_t + i / (double)SAMPLE_RATE;
         float  a = 2.0f + 0.5f * sinf(2.0f * (float)M_PI * 0.2f * (float)t);
         h[i] = a     * sinf((float)fmod(2.0 * M_PI *  750.0 * t, 2.0 * M_PI))
              + 0.05f * sinf((float)fmod(2.0 * M_PI * 1500.0 * t, 2.0 * M_PI))
              + 0.02f * sinf((float)fmod(2.0 * M_PI *   50.0 * t, 2.0 * M_PI))
-             + 0.002f * demo_noise();
+             + 0.002f * sim_noise();
     }
-    g_demo_h_t += h_n / (double)SAMPLE_RATE;
+    g_sim_h_t += h_n / (double)SAMPLE_RATE;
 
     /* Pressure [kPa]: atmospheric baseline with a press pulse every 1.25 s. */
     for (int i = 0; i < p_n; i++) {
-        double t     = g_demo_p_t + i / (double)DEMO_PRES_RATE;
+        double t     = g_sim_p_t + i / (double)SIM_PRES_RATE;
         double phase = fmod(t, 1.25) / 0.6;
         float  press = phase < 1.0 ? (float)(0.5 - 0.5 * cos(2.0 * M_PI * phase))
                                    : 0.0f;
-        p[i] = 101.3f + 1800.0f * press + 1.5f * demo_noise();
+        p[i] = 101.3f + 1800.0f * press + 1.5f * sim_noise();
     }
-    g_demo_p_t += p_n / (double)DEMO_PRES_RATE;
+    g_sim_p_t += p_n / (double)SIM_PRES_RATE;
 
-    float temp = 21.5f + 0.3f * sinf((float)fmod(2.0 * M_PI * g_demo_p_t / 60.0, 2.0 * M_PI));
+    float temp = 21.5f + 0.3f * sinf((float)fmod(2.0 * M_PI * g_sim_p_t / 60.0, 2.0 * M_PI));
+
+    cbor_write_map(cs, 4);
+    cbor_write_text(cs, "h"); cbor_write_bytes(cs, (const uint8_t *)h, (size_t)h_n * 4);
+    cbor_write_text(cs, "p"); cbor_write_bytes(cs, (const uint8_t *)p, (size_t)p_n * 4);
+    cbor_write_text(cs, "t"); cbor_write_bytes(cs, (const uint8_t *)&temp, 4);
+    cbor_write_text(cs, "s"); cbor_write_text(cs, "sim");
+}
+
+/* Power-on reset: the simulated board starts in its bootloader. */
+EMSCRIPTEN_KEEPALIVE void sensor_sim_reset(void) {
+    g_sim_app_running  = false;
+    g_sim_last_poll_ms = -1.0;
+}
+
+/* Handle one frame received by the simulated board (bytes between null
+   delimiters).  now_ms is the host clock, used to size poll responses.
+   Writes a complete null-delimited COBS-framed reply into out and returns
+   its length; returns 0 when there is no reply, -1 on error. */
+EMSCRIPTEN_KEEPALIVE int sensor_sim_rx(const uint8_t *in, int in_len,
+                                       uint8_t *out, int out_cap, double now_ms) {
+    static uint8_t dec[256];
+    static uint8_t cbor[8192];
+
+    if (in_len <= 0 || in_len > (int)sizeof(dec)) return -1;
+    int dec_len = cobs_dec_w(dec, in, (size_t)in_len);
+    if (dec_len <= 0) return -1;
+
+    char     cmd[16] = "";
+    size_t   cmd_len = sizeof(cmd);
+    unsigned enable = 0, next = 0;
+    bool     cmd_ok = false, en_ok = false, nx_ok = false;
+    cbor_stream_t rs;
+    cbor_init(&rs, dec, (size_t)dec_len);
+    if (cbor_unpack(&rs, "{.cmd:?s,.enable:?I,.next:?I}",
+                    &cmd_ok, cmd, &cmd_len, &en_ok, &enable, &nx_ok, &next)
+            != CBOR_ERROR_NONE || !cmd_ok)
+        return -1;
 
     cbor_stream_t cs;
-    cbor_init(&cs, buf, (size_t)buf_size);
-    cbor_write_map(&cs, 4);
-    cbor_write_text(&cs, "h"); cbor_write_bytes(&cs, (const uint8_t *)h, (size_t)h_n * 4);
-    cbor_write_text(&cs, "p"); cbor_write_bytes(&cs, (const uint8_t *)p, (size_t)p_n * 4);
-    cbor_write_text(&cs, "t"); cbor_write_bytes(&cs, (const uint8_t *)&temp, 4);
-    cbor_write_text(&cs, "s"); cbor_write_text(&cs, "demo");
+    cbor_init(&cs, cbor, sizeof(cbor));
+
+    if (strcmp(cmd, "info") == 0) {
+        cbor_write_map(&cs, 2);
+        cbor_write_text(&cs, "bl-ver");  cbor_write_text(&cs, SIM_VERSION);
+        cbor_write_text(&cs, "app-ver"); cbor_write_text(&cs, SIM_VERSION);
+    } else if (strcmp(cmd, "bl-done") == 0) {
+        g_sim_app_running = true;
+        return 0;
+    } else if (strcmp(cmd, "poll") == 0 && g_sim_app_running) {
+        double dt = g_sim_last_poll_ms < 0 ? 20.0 : now_ms - g_sim_last_poll_ms;
+        if (dt < 0)    dt = 0;
+        if (dt > 250)  dt = 250;    /* after a stall, don't overflow the frame */
+        g_sim_last_poll_ms = now_ms;
+        sim_poll_response(&cs, dt);
+    } else {
+        return 0;                   /* unknown, or poll while in bootloader */
+    }
+
     if (cbor_error(&cs) != CBOR_ERROR_NONE) return -1;
-    return (int)cbor_read_avail(&cs);
+    int clen = (int)cbor_read_avail(&cs);
+    if (2 + COBS_ENC_SIZE(clen) > out_cap) return -1;
+    out[0] = 0;
+    int elen = cobs_enc_w(out + 1, cbor, (size_t)clen);
+    out[1 + elen] = 0;
+    return 2 + elen;
 }
 
 /* Accessors — return pointers into WASM linear memory so JS can view the

@@ -50,15 +50,14 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
         Download for offline use
       </a>
-      <a href="app/?demo">Try the demo (no board needed)</a>
     </div>
     <p class="meta">Version {{VERSION}} · Requires desktop Chrome or Edge</p>
   </div>
 
   <figure>
-    <img src="img/app-demo.png" width="1400" height="860"
-         alt="The tester in demo mode. The top plot is a hydrophone spectrum from 0 to 1995 Hz with a strong peak at 752 Hz. The bottom plot is one second of pressure in kPa showing a press pulse up to about 1900 kPa. The header shows the poll rate, the error count, the temperature and the firmware versions.">
-    <figcaption>Demo mode, running on simulated data. With a real board, the header shows its
+    <img src="img/app-simulator.png" width="1400" height="860"
+         alt="The tester connected to the simulator board. The top plot is a hydrophone spectrum from 0 to 1995 Hz with a strong peak at 752 Hz. The bottom plot is one second of pressure in kPa showing a press pulse up to about 1900 kPa. The header shows the poll rate, the error count, the temperature and the firmware versions.">
+    <figcaption>Connected to the simulator board. With a real board, the header shows its
       bootloader and app firmware versions, and the plots show live sensor data.</figcaption>
   </figure>
 
@@ -94,8 +93,9 @@
         <h2>How to use</h2>
         <ol class="steps">
           <li>Connect the sensor board to the computer over USB.</li>
-          <li>Open the tester in <strong>Chrome</strong> or <strong>Edge</strong>,
-            then click <strong>Connect</strong>.</li>
+          <li>Open the tester in <strong>Chrome</strong> or <strong>Edge</strong>.
+            Leave the source set to <strong>USB serial</strong> and click
+            <strong>Connect</strong>.</li>
           <li>Choose the board's serial port in the browser's pop-up and click
             <strong>Connect</strong>.</li>
           <li>The tester talks to the bootloader, reads the firmware versions and
@@ -111,7 +111,7 @@
           <strong>Chrome 89+</strong> or <strong>Edge 89+</strong> on Windows, macOS or Linux.</p>
         <div class="note">
           <strong>Not supported:</strong> Safari, Firefox and mobile browsers don't have
-          Web Serial. You can still look at the <a href="app/?demo">demo</a> in them.
+          Web Serial. You can still try the tester in them with the simulator board.
         </div>
         <p class="muted">The tester connects at 1,000,000 baud, 8N1, with no flow control.
           All processing happens in your browser, and no data leaves your computer.</p>
@@ -119,9 +119,21 @@
     </div>
   </section>
 
+  <section id="simulator">
+    <h2>Simulator board</h2>
+    <p>To try the tester without hardware, set the source to <strong>Simulator board</strong>
+      and click <strong>Connect</strong>.
+      The simulator answers the same serial protocol as a real board, so the tester goes
+      through its normal connect sequence and then plots made-up data: a 750&nbsp;Hz
+      tone and a repeating press pulse.</p>
+    <p class="muted">While the simulator is connected, the header shows a
+      <strong>SIMULATOR</strong> badge and the firmware versions read <code>sim</code>,
+      so it can't be mistaken for a real board.</p>
+  </section>
+
   <section id="offline">
     <h2>Running offline</h2>
-    <p>The download is a single HTML file (about 80&nbsp;KB) that contains the whole
+    <p>The download is a single HTML file (under 100&nbsp;KB) that contains the whole
       tester. It doesn't need an internet connection, a web server or an install.</p>
     <ol class="steps">
       <li><a href="downloads/dws-sensor-board-tester.html" download>Download
@@ -138,8 +150,9 @@
   <section id="troubleshooting">
     <h2>Troubleshooting</h2>
     <dl class="faq">
-      <dt>The Connect button is greyed out, or there's a "Web Serial not supported" warning</dt>
-      <dd>The browser doesn't support Web Serial. Use desktop Chrome or Edge.</dd>
+      <dt>"USB serial" is greyed out, or there's a "Web Serial not supported" warning</dt>
+      <dd>The browser doesn't support Web Serial. Use desktop Chrome or Edge. Until then,
+        only the simulator board is available.</dd>
 
       <dt>The board's port isn't in the list</dt>
       <dd>Check the USB cable (some cables only carry power) and that the board is

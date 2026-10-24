@@ -6,7 +6,7 @@ is also published as a single HTML file for offline use.
 
 | Tool | Path |
 |------|------|
-| Sensor Board Tester — live hydrophone spectrum, pressure, temperature and firmware versions over Web Serial (Chrome/Edge). Add `?demo` to the app URL for simulated data. | [`/sensor-board-tester/`](https://dws-apps.unitcircle.ca/sensor-board-tester/) |
+| Sensor Board Tester — live hydrophone spectrum, pressure, temperature and firmware versions over Web Serial (Chrome/Edge). Connect to the built-in simulator board to try it without hardware. | [`/sensor-board-tester/`](https://dws-apps.unitcircle.ca/sensor-board-tester/) |
 
 ## Layout
 
@@ -18,7 +18,7 @@ web/<tool>/index.html          tool landing page
 web/<tool>/app/                the tool itself
 web/<tool>/img/                screenshots
 tools/build_site.py            assembles _site/ and each tool's single-file download
-tools/screenshots.py           regenerates screenshots from demo mode
+tools/screenshots.py           regenerates screenshots using the simulator board
 ```
 
 To add a tool, create `web/<tool>/` with an `index.html` landing page and an

@@ -4,12 +4,14 @@
  * Requires Chrome 89+ or Edge 89+.
  * Web Serial API is NOT supported in Safari (as of 2025).
  *
- * Add ?demo to the URL to run on simulated data (no hardware or Web Serial
- * needed).  Demo frames are generated in WASM and take the same decode,
- * FFT and render path as real poll responses.
+ * Choose "Simulator board" as the source to connect to a simulated board
+ * instead (no hardware or Web Serial needed).  It speaks the same protocol
+ * as the firmware, so the whole connect / poll / decode path runs as usual.
+ * ?sim in the URL connects to the simulator on load (used for screenshots).
  */
 
-const DEMO = new URLSearchParams(location.search).has('demo');
+const _params    = new URLSearchParams(location.search);
+const START_SIM  = _params.has('sim');
 
 /* =========================================================================
    WASM module bootstrap
@@ -119,7 +121,8 @@ function drawPlot(ctx, data, xMin, xMax, yMin, yMax,
    ========================================================================= */
 
 const state = {
-    port:       null,
+    port:       null,     // SerialPort, or SimulatorPort
+    simulated:  false,    // true while connected to the simulator board
     writer:     null,
     proto:      'idle',   // idle | info | bl_done | wait_app | polling
     /* Pre-allocated output buffers — filled in place by .set() to avoid
@@ -129,7 +132,7 @@ const state = {
     fftLabel:   'Hydrophone Response',
     presLabel:  'Pressure Response',
     tempStr:    '',
-    statusStr:  'Disconnected — use Chrome or Edge',
+    statusStr:  'Disconnected — choose a source and click Connect',
     versionStr: '',
     pollCmd:    null,     // encoded poll frame, set when entering polling state
     pollCount:  0,
@@ -148,7 +151,7 @@ const state = {
    ALLOW_MEMORY_GROWTH can replace the underlying ArrayBuffer, detaching any
    cached views and causing a TypeError on the next .set() call.
    Always read M.HEAPU8 / M.HEAPF32 fresh at the call site instead. */
-let cmdBufPtr, frameBufPtr, decodeBufPtr, verBufPtr;
+let cmdBufPtr, frameBufPtr, decodeBufPtr, verBufPtr, simInPtr, simOutPtr;
 
 const CMD_CAP   = 256;
 const FRAME_CAP = 65536;
@@ -158,6 +161,8 @@ function allocateWasmBuffers() {
     frameBufPtr  = M._malloc(FRAME_CAP);
     decodeBufPtr = M._malloc(FRAME_CAP);
     verBufPtr    = M._malloc(256);
+    simInPtr     = M._malloc(SIM_IN_CAP);
+    simOutPtr    = M._malloc(FRAME_CAP);
 }
 
 /* Singleton TextDecoder — reused on every call to avoid allocating a new
@@ -351,7 +356,7 @@ async function runProtocol() {
        This loop just kicks off the first poll then acts as a watchdog,
        resending if the device goes quiet for more than 1.5 s. */
     state.proto      = 'polling';
-    state.statusStr  = 'Connected';
+    state.statusStr  = state.simulated ? 'Connected to simulator board' : 'Connected';
     state.lastRateTs = performance.now();
     console.log('[proto] entering poll loop (request-reply)');
 
@@ -378,7 +383,8 @@ async function runProtocol() {
 }
 
 async function connect() {
-    if (!('serial' in navigator)) {
+    const simulated = sourceSel.value === 'sim';
+    if (!simulated && !('serial' in navigator)) {
         state.statusStr =
             'Web Serial API not available — use Chrome 89+ or Edge 89+.  Safari is not supported.';
         updateHeader();
@@ -391,7 +397,8 @@ async function connect() {
     }
 
     try {
-        state.port = await navigator.serial.requestPort();
+        state.port = simulated ? new SimulatorPort()
+                               : await navigator.serial.requestPort();
         await state.port.open({
             baudRate:    1000000,
             dataBits:    8,
@@ -407,6 +414,7 @@ async function connect() {
     }
 
     /* Reset state */
+    state.simulated = simulated;
     rx.inFrame = false; rx.frameLen = 0;
     state.fftData.fill(0); state.presData.fill(0);
     state.tempStr  = ''; state.versionStr = '';
@@ -414,6 +422,8 @@ async function connect() {
     state.rateFilt = 0;
 
     document.getElementById('connect-btn').textContent = 'Disconnect';
+    sourceSel.disabled = true;
+    simBadge.style.display = simulated ? 'inline' : 'none';
 
     state.writer = state.port.writable.getWriter();
 
@@ -444,21 +454,6 @@ async function connect() {
     runProtocol();
 }
 
-/* Demo mode — feed a simulated poll response through processDecodedFrame
-   every DEMO_DT_MS, standing in for the serial request-reply loop. */
-const DEMO_DT_MS = 20;
-
-function startDemo() {
-    state.proto      = 'polling';
-    state.statusStr  = 'Demo mode — simulated data, no board connected';
-    state.versionStr = 'BL: demo  APP: demo';
-    state.lastRateTs = performance.now();
-    setInterval(() => {
-        const len = M._sensor_demo_frame(decodeBufPtr, FRAME_CAP, DEMO_DT_MS);
-        processDecodedFrame(len);
-    }, DEMO_DT_MS);
-}
-
 async function disconnect() {
     state.proto = 'idle';
     if (state.writer) {
@@ -471,7 +466,58 @@ async function disconnect() {
     }
     state.statusStr = 'Disconnected';
     document.getElementById('connect-btn').textContent = 'Connect';
+    sourceSel.disabled = false;
+    simBadge.style.display = 'none';
     updateHeader();
+}
+
+/* =========================================================================
+   Simulator board
+   ========================================================================= */
+
+/* Stand-in for a Web Serial SerialPort — the same open / readable /
+   writable / close surface — backed by the WASM simulator (sensor_sim_rx).
+   Replies are delayed by SIM_LATENCY_MS so the request-reply poll loop is
+   paced roughly like a real board rather than spinning. */
+const SIM_LATENCY_MS = 20;
+const SIM_IN_CAP     = 256;
+
+class SimulatorPort {
+    async open() {
+        M._sensor_sim_reset();
+        this.closed   = false;
+        this.frame    = new Uint8Array(SIM_IN_CAP);
+        this.frameLen = 0;
+        this.readable = new ReadableStream({ start: c => { this.ctrl = c; } });
+        this.writable = new WritableStream({ write: chunk => this.receive(chunk) });
+    }
+
+    /* Split the app's byte stream into null-delimited COBS frames. */
+    receive(chunk) {
+        for (const b of chunk) {
+            if (b === 0) {
+                if (this.frameLen > 0) this.handle(this.frame.subarray(0, this.frameLen));
+                this.frameLen = 0;
+            } else if (this.frameLen < SIM_IN_CAP) {
+                this.frame[this.frameLen++] = b;
+            }
+        }
+    }
+
+    handle(frame) {
+        M.HEAPU8.set(frame, simInPtr);
+        const len = M._sensor_sim_rx(simInPtr, frame.length, simOutPtr, FRAME_CAP,
+                                     performance.now());
+        if (len <= 0) return;
+        const reply = M.HEAPU8.slice(simOutPtr, simOutPtr + len);
+        setTimeout(() => { if (!this.closed) this.ctrl.enqueue(reply); }, SIM_LATENCY_MS);
+    }
+
+    async close() {
+        if (this.closed) return;
+        this.closed = true;
+        this.ctrl.close();   // ends the app's read loop, like unplugging
+    }
 }
 
 /* =========================================================================
@@ -533,8 +579,18 @@ function renderFrame(ts) {
 
 window.addEventListener('resize', () => { resizeCanvases(); });
 
+const sourceSel = document.getElementById('source-select');
+const simBadge  = document.getElementById('sim-badge');
+
+/* Without Web Serial (Safari, Firefox, ...) only the simulator can work. */
+if (!('serial' in navigator)) {
+    sourceSel.querySelector('option[value="serial"]').disabled = true;
+    sourceSel.value = 'sim';
+    state.statusStr = 'Web Serial not supported — only the simulator board is available.';
+}
+if (START_SIM) sourceSel.value = 'sim';
+
 document.getElementById('connect-btn').addEventListener('click', () => {
-    if (DEMO) { location.search = ''; return; }
     if (state.port) disconnect(); else connect();
 });
 
@@ -542,7 +598,7 @@ resizeCanvases();
 
 loadWasm().then(() => {
     allocateWasmBuffers();
-    if (DEMO) startDemo();
+    if (START_SIM) connect();
     renderFrame();
 }).catch(e => {
     document.getElementById('status-text').textContent =
